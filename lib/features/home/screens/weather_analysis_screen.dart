@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/weather_analysis_bloc.dart';
+import '../models/farm_info.dart';
+import '../services/farm_service.dart';
+import '../widgets/weather_analysis/weather_card.dart';
+import '../widgets/weather_analysis/analysis_type_selector.dart';
+import '../widgets/weather_analysis/analysis_card.dart';
+import '../widgets/weather_analysis/farm_selector.dart';
 
 class WeatherAnalysisScreen extends StatefulWidget {
   const WeatherAnalysisScreen({super.key});
@@ -12,85 +16,30 @@ class WeatherAnalysisScreen extends StatefulWidget {
 }
 
 class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen> {
-  String _weatherDescription = "កំពុងទាញយកទិន្នន័យអាកាសធាតុ...";
-  double? _temperature;
-  Position? _currentPosition;
-  String _address = "";
+  final FarmService _farmService = FarmService();
+  List<FarmInfo> _farms = [];
+  FarmInfo? _selectedFarm;
+  bool _isMonthly = false;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _loadFarms();
   }
 
-  Future<void> _getCurrentLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _weatherDescription = "មិនអាចទាញយកទិន្នន័យអាកាសធាតុបានទេ";
-          });
-          return;
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      setState(() {
-        _currentPosition = position;
-      });
-
-      // Get address from coordinates
-      try {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (placemarks.isNotEmpty) {
-          Placemark place = placemarks[0];
-          setState(() {
-            _address = '${place.street}, ${place.subLocality}, '
-                '${place.locality}, ${place.administrativeArea}';
-          });
-        }
-      } catch (e) {
-        setState(() {
-          _address = "មិនអាចរកទីតាំងបានទេ";
-        });
-      }
-
-      _fetchWeather(position.latitude, position.longitude);
-    } catch (e) {
-      setState(() {
-        _weatherDescription = "មានបញ្ហាក្នុងការទាញយកទិន្នន័យអាកាសធាតុ";
-      });
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    context
+        .read<WeatherAnalysisBloc>()
+        .add(LoadWeatherData(isMonthly: _isMonthly));
   }
 
-  Future<void> _fetchWeather(double lat, double lon) async {
-    const String apiKey = "8d7371509f205f7a4f5d8479c38cd0b8";
-    final Uri url = Uri.parse(
-        "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric");
-
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          _weatherDescription = data["weather"][0]["description"];
-          _temperature = data["main"]["temp"];
-        });
-      } else {
-        setState(() {
-          _weatherDescription = "មិនអាចទាញយកទិន្នន័យអាកាសធាតុបានទេ";
-        });
-      }
-    } catch (e) {
+  Future<void> _loadFarms() async {
+    final farms = await _farmService.getFarmList();
+    if (mounted) {
       setState(() {
-        _weatherDescription = "មានបញ្ហាក្នុងការទាញយកទិន្នន័យអាកាសធាតុ";
+        _farms = farms;
       });
     }
   }
@@ -98,6 +47,34 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'វិភាគអាកាសធាតុ',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF1B5E20),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'ត្រឡប់ក្រោយ',
+        ),
+        actions: [
+          BlocBuilder<WeatherAnalysisBloc, WeatherAnalysisState>(
+            builder: (context, state) {
+              return IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: () => context
+                    .read<WeatherAnalysisBloc>()
+                    .add(LoadWeatherData(isMonthly: _isMonthly)),
+                tooltip: 'ធ្វើបច្ចុប្បន្នភាព',
+              );
+            },
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -106,51 +83,116 @@ class _WeatherAnalysisScreenState extends State<WeatherAnalysisScreen> {
             opacity: 0.1,
           ),
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.cloud,
-                  size: 100,
-                  color: Color(0xFF2E7D32),
+        child: BlocBuilder<WeatherAnalysisBloc, WeatherAnalysisState>(
+          builder: (context, state) {
+            if (state is WeatherAnalysisLoading) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF2E7D32)),
+                    SizedBox(height: 16),
+                    Text('កំពុងទាញយកទិន្នន័យអាកាសធាតុ...'),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  "អាកាសធាតុបច្ចុប្បន្ន",
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: const Color(0xFF2E7D32),
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                if (_address.isNotEmpty) ...[
-                  Text(
-                    _address,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Text(
-                  _weatherDescription,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                if (_temperature != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    "${_temperature!.toStringAsFixed(1)}°C",
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF2E7D32),
+              );
+            }
+
+            if (state is WeatherAnalysisError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => context
+                          .read<WeatherAnalysisBloc>()
+                          .add(LoadWeatherData(isMonthly: _isMonthly)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
                         ),
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('ព្យាយាមម្តងទៀត'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state is WeatherAnalysisComplete) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context
+                      .read<WeatherAnalysisBloc>()
+                      .add(LoadWeatherData(isMonthly: _isMonthly));
+                },
+                color: const Color(0xFF2E7D32),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AnalysisTypeSelector(
+                          isMonthly: _isMonthly,
+                          onTypeChanged: (isMonthly) {
+                            setState(() => _isMonthly = isMonthly);
+                            context
+                                .read<WeatherAnalysisBloc>()
+                                .add(LoadWeatherData(isMonthly: isMonthly));
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        WeatherCard(weatherData: state),
+                        const SizedBox(height: 24),
+                        FarmSelector(
+                          farms: _farms,
+                          selectedFarm: _selectedFarm,
+                          onFarmSelected: (FarmInfo? value) {
+                            setState(() {
+                              _selectedFarm = value;
+                            });
+                          },
+                          isAnalyzing: false,
+                          onAnalyze: () {
+                            context.read<WeatherAnalysisBloc>().add(
+                                  AnalyzeWeatherForFarm(
+                                    _selectedFarm!,
+                                    isMonthly: _isMonthly,
+                                  ),
+                                );
+                          },
+                          isMonthly: _isMonthly,
+                        ),
+                        if (state.analysis.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          AnalysisCard(analysis: state.analysis),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
-              ],
-            ),
-          ),
+                ),
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );

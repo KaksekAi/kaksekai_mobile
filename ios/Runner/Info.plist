@@ -46,10 +46,16 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open to measure land area.</string>
+	<string>This app needs access to location to analyze planting conditions.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs access to location when in the background to measure land area.</string>
+	<string>This app needs access to location to analyze planting conditions.</string>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to take photos of your land</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photos access to let you choose photos of your land</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for videos</string>
 </dict>
 </plist>
