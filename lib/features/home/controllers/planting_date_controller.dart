@@ -10,13 +10,18 @@ import 'package:uuid/uuid.dart';
 
 import '../models/farm_info.dart';
 import '../models/weather_data.dart';
+import '../models/planting_analysis.dart';
 import '../services/weather_analysis_service.dart';
 import '../services/farm_service.dart';
+import '../services/planting_analysis_storage_service.dart';
+import '../../../utils/khmer_date_formatter.dart';
 
 class PlantingDateController extends ChangeNotifier {
   final WeatherAnalysisService _weatherAnalysisService =
       WeatherAnalysisService();
   final FarmService _farmService = FarmService();
+  final PlantingAnalysisStorageService _analysisStorage =
+      PlantingAnalysisStorageService();
   final ImagePicker _picker = ImagePicker();
 
   Position? _currentPosition;
@@ -130,6 +135,7 @@ class PlantingDateController extends ChangeNotifier {
     required String seedType,
     required String landType,
     required DateTime selectedDate,
+    required DateTime endDate,
   }) async {
     _isAnalyzing = true;
     _errorMessage = null;
@@ -143,7 +149,8 @@ class PlantingDateController extends ChangeNotifier {
         cropAge: 0,
         location: _currentAddress ?? 'Unknown',
         situation: landType,
-        notes: 'ប្រភេទពូជ: $seedType',
+        notes:
+            'ប្រភេទពូជ: $seedType\nកាលបរិច្ឆេទដាំដុះ: ${KhmerDateFormatter.formatDateRange(selectedDate, endDate)}',
       );
 
       final weatherData = WeatherDataLoaded(
@@ -166,6 +173,21 @@ class PlantingDateController extends ChangeNotifier {
       );
 
       await _farmService.addFarm(farmInfo);
+
+      // Create and save the analysis
+      final plantingAnalysis = PlantingAnalysis(
+        id: const Uuid().v4(),
+        cropType: cropType,
+        seedType: seedType,
+        landSize: landSize,
+        landType: landType,
+        analysisDate: DateTime.now(),
+        plantingDateRange: DateTimeRange(start: selectedDate, end: endDate),
+        location: _currentAddress ?? 'Unknown',
+        result: analysis,
+      );
+
+      await _analysisStorage.saveAnalysis(plantingAnalysis);
 
       _analysisResult = analysis;
       _isAnalyzing = false;

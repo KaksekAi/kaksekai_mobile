@@ -17,56 +17,127 @@ class StartMeasurementCard extends StatelessWidget {
     }
   }
 
+  String _getMethodTitle(MeasurementMethod method) {
+    switch (method) {
+      case MeasurementMethod.pointByPoint:
+        return 'វាស់វែងតាមចំណុច';
+      case MeasurementMethod.walkAround:
+        return 'វាស់វែងតាមការដើរជុំវិញ';
+      case MeasurementMethod.centerRadius:
+        return 'វាស់វែងតាមកាំ';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LandMeasurementController>();
 
     return Center(
-      child: Card(
-        color: Colors.white.withOpacity(0.9),
+      child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.touch_app,
-                size: 48,
-                color: Color(0xFF1B5E20),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _getInstructionText(controller.currentMethod),
-                style: const TextStyle(fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  controller.toggleDrawing();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        controller.currentMethod ==
-                                MeasurementMethod.centerRadius
-                            ? 'ចុចលើផែនទីដើម្បីកំណត់ចំណុចកណ្តាល'
-                            : controller.currentMethod ==
-                                    MeasurementMethod.walkAround
-                                ? 'ចាប់ផ្តើមដើរជុំវិញដី'
-                                : 'ចុចលើផែនទីដើម្បីកំណត់ចំណុច',
-                      ),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('គូសផែនទី'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Card(
+            elevation: 8,
+            shadowColor: Colors.black26,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Container(
+              width: MediaQuery.of(context).size.width > 600
+                  ? 500
+                  : double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Colors.green.shade50,
+                  ],
                 ),
               ),
-            ],
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B5E20).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.touch_app,
+                        size: 48,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _getMethodTitle(controller.currentMethod),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1B5E20),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _getInstructionText(controller.currentMethod),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          controller.toggleDrawing();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                controller.currentMethod ==
+                                        MeasurementMethod.centerRadius
+                                    ? 'ចុចលើផែនទីដើម្បីកំណត់ចំណុចកណ្តាល'
+                                    : controller.currentMethod ==
+                                            MeasurementMethod.walkAround
+                                        ? 'ចាប់ផ្តើមដើរជុំវិញដី'
+                                        : 'ចុចលើផែនទីដើម្បីកំណត់ចំណុច',
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit, color: Colors.white,),
+                        label: const Text(
+                          'គូសផែនទី',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1B5E20),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

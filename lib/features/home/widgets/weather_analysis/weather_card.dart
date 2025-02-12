@@ -13,18 +13,29 @@ class WeatherCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E7D32).withOpacity(0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF1B5E20).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       margin: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF2E7D32), size: 24),
+          Icon(icon, color: const Color(0xFF1B5E20), size: 24),
           const SizedBox(height: 8),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.grey,
+              color: Color(0xFF666666),
               fontSize: 12,
             ),
           ),
@@ -34,7 +45,7 @@ class WeatherCard extends StatelessWidget {
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Color(0xFF2E7D32),
+              color: Color(0xFF1B5E20),
             ),
           ),
         ],
@@ -47,18 +58,29 @@ class WeatherCard extends StatelessWidget {
     if (weatherData.isMonthly && weatherData.monthlyWeather != null) {
       return Card(
         elevation: 2,
+        color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color(0xFF1B5E20).withOpacity(0.2),
+            width: 1,
+          ),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: const Color(0xFF1B5E20).withOpacity(0.1),
+                    width: 1,
+                  ),
                 ),
               ),
               child: Column(
@@ -66,33 +88,55 @@ class WeatherCard extends StatelessWidget {
                   Text(
                     "ការព្យាករណ៍អាកាសធាតុប្រចាំខែ ${weatherData.monthlyWeather!.month}",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
+                          color: const Color(0xFF1B5E20),
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.thermostat,
-                          color: Colors.white, size: 48),
-                      const SizedBox(width: 8),
-                      Text(
-                        "${weatherData.monthlyWeather!.averageTemperature.toStringAsFixed(1)}°C",
-                        style:
-                            Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF1B5E20).withOpacity(0.2),
+                        width: 1,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.thermostat,
+                            color: const Color(0xFF1B5E20), size: 48),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${weatherData.monthlyWeather!.averageTemperature.toStringAsFixed(1)}°C",
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(
+                                color: const Color(0xFF1B5E20),
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     "សីតុណ្ហភាពមធ្យម",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: const Color(0xFF1B5E20).withOpacity(0.8),
                       fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -104,19 +148,43 @@ class WeatherCard extends StatelessWidget {
               child: Column(
                 children: [
                   if (weatherData.address.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Color(0xFF2E7D32)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            weatherData.address,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF1B5E20).withOpacity(0.2),
+                          width: 1,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on,
+                              color: Color(0xFF1B5E20)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              weatherData.address,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF1B5E20),
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Divider(height: 24),
+                    const SizedBox(height: 16),
                   ],
                   Row(
                     children: [
@@ -147,18 +215,29 @@ class WeatherCard extends StatelessWidget {
     if (!weatherData.isMonthly && weatherData.currentWeather != null) {
       return Card(
         elevation: 2,
+        color: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: const Color(0xFF1B5E20).withOpacity(0.2),
+            width: 1,
+          ),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E7D32),
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: const Color(0xFF1B5E20).withOpacity(0.1),
+                    width: 1,
+                  ),
                 ),
               ),
               child: Column(
@@ -166,33 +245,55 @@ class WeatherCard extends StatelessWidget {
                   Text(
                     "អាកាសធាតុបច្ចុប្បន្ន",
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
+                          color: const Color(0xFF1B5E20),
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.thermostat,
-                          color: Colors.white, size: 48),
-                      const SizedBox(width: 8),
-                      Text(
-                        "${weatherData.currentWeather!.temperature.toStringAsFixed(1)}°C",
-                        style:
-                            Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF1B5E20).withOpacity(0.2),
+                        width: 1,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.thermostat,
+                            color: const Color(0xFF1B5E20), size: 48),
+                        const SizedBox(width: 8),
+                        Text(
+                          "${weatherData.currentWeather!.temperature.toStringAsFixed(1)}°C",
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(
+                                color: const Color(0xFF1B5E20),
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     weatherData.currentWeather!.description,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: const Color(0xFF1B5E20).withOpacity(0.8),
                       fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -204,19 +305,43 @@ class WeatherCard extends StatelessWidget {
               child: Column(
                 children: [
                   if (weatherData.address.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Color(0xFF2E7D32)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            weatherData.address,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF1B5E20).withOpacity(0.2),
+                          width: 1,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.location_on,
+                              color: Color(0xFF1B5E20)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              weatherData.address,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xFF1B5E20),
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Divider(height: 24),
+                    const SizedBox(height: 16),
                   ],
                   Row(
                     children: [

@@ -3,7 +3,12 @@ import 'package:provider/provider.dart';
 import '../controllers/planting_date_controller.dart';
 import '../widgets/planting_date/weather_info_card.dart';
 import '../widgets/planting_date/location_info_card.dart';
-import '../widgets/planting_date/sliding_analysis_card.dart';
+import '../widgets/planting_date/analysis_result_card.dart';
+import '../widgets/planting_date/crop_info_form.dart';
+import '../widgets/planting_date/planting_instructions_dialog.dart';
+import '../widgets/planting_date/analyze_button.dart';
+import 'planting_analysis_result_screen.dart';
+import 'planting_analysis_history_screen.dart';
 
 class PlantingDateScreenProvider extends StatelessWidget {
   const PlantingDateScreenProvider({super.key});
@@ -36,12 +41,11 @@ class _PlantingDateScreenState extends State<PlantingDateScreen> {
   final FocusNode _landSizeFocus = FocusNode();
   final FocusNode _landTypeFocus = FocusNode();
 
-  DateTime? _selectedDate;
+  DateTimeRange? _selectedDateRange;
   final _formKey = GlobalKey<FormState>();
 
   final Color _primaryColor = const Color(0xFF1B5E20);
   final Color _secondaryColor = const Color(0xFF2E7D32);
-  final Color _backgroundColor = Colors.grey[50]!;
 
   @override
   void initState() {
@@ -74,205 +78,97 @@ class _PlantingDateScreenState extends State<PlantingDateScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'ការណែនាំ',
-            style: TextStyle(color: _primaryColor),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text('1. បញ្ចូលព័ត៌មានដំណាំ និងដីរបស់អ្នក'),
-                SizedBox(height: 8),
-                Text('2. ថតរូប ឬជ្រើសរើសរូបភាពដីរបស់អ្នក'),
-                SizedBox(height: 8),
-                Text('3. ផ្ទៀងផ្ទាត់ទីតាំងរបស់អ្នក'),
-                SizedBox(height: 8),
-                Text('4. ជ្រើសរើសកាលបរិច្ឆេទដាំដុះ'),
-                SizedBox(height: 8),
-                Text('5. ចុចប៊ូតុង "វិភាគលក្ខខណ្ឌដាំដុះ"'),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'យល់ព្រម',
-                style: TextStyle(color: _primaryColor),
-              ),
-            ),
-          ],
-        );
+        return PlantingInstructionsDialog(primaryColor: _primaryColor);
       },
     );
-  }
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: _primaryColor,
-              onPrimary: Colors.white,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'ជ្រើសរើសកាលបរិច្ឆេទដាំដុះ',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _primaryColor,
+                _secondaryColor,
+              ],
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline),
+            icon: const Icon(Icons.history, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlantingAnalysisHistoryScreen(),
+                ),
+              );
+            },
+            tooltip: 'ប្រវត្តិវិភាគ',
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Colors.white),
             onPressed: _showInstructions,
             tooltip: 'ការណែនាំ',
           ),
         ],
       ),
-      body: Consumer<PlantingDateController>(
-        builder: (context, controller, child) {
-          return Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/bg.png'),
-                fit: BoxFit.cover,
-                opacity: 0.1,
-              ),
-            ),
-            child: Form(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _primaryColor.withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Consumer<PlantingDateController>(
+          builder: (context, controller, child) {
+            return Form(
               key: _formKey,
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.fromLTRB(24, 100, 24, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (controller.errorMessage != null)
-                        Card(
-                          color: Colors.red.shade50,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.error_outline,
-                                    color: Colors.red.shade700),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    controller.errorMessage!,
-                                    style:
-                                        TextStyle(color: Colors.red.shade700),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        _buildErrorCard(controller.errorMessage!),
                       const SizedBox(height: 16),
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'ព័ត៌មានដំណាំ',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: _primaryColor,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _plantController,
-                                focusNode: _plantFocus,
-                                decoration: _buildInputDecoration('ដំណាំ'),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'សូមបញ្ចូលប្រភេទដំណាំ';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _seedTypeController,
-                                focusNode: _seedTypeFocus,
-                                decoration: _buildInputDecoration('ប្រភេទពូជ'),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'សូមបញ្ចូលប្រភេទពូជ';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _landSizeController,
-                                focusNode: _landSizeFocus,
-                                keyboardType: TextInputType.number,
-                                decoration:
-                                    _buildInputDecoration('ទំហំដី (ហិកតា)'),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'សូមបញ្ចូលទំហំដី';
-                                  }
-                                  if (double.tryParse(value) == null) {
-                                    return 'សូមបញ្ចូលលេខត្រឹមត្រូវ';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _landTypeController,
-                                focusNode: _landTypeFocus,
-                                decoration: _buildInputDecoration('ប្រភេទដី'),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'សូមបញ្ចូលប្រភេទដី';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                      CropInfoForm(
+                        plantController: _plantController,
+                        seedTypeController: _seedTypeController,
+                        landSizeController: _landSizeController,
+                        landTypeController: _landTypeController,
+                        plantFocus: _plantFocus,
+                        seedTypeFocus: _seedTypeFocus,
+                        landSizeFocus: _landSizeFocus,
+                        landTypeFocus: _landTypeFocus,
+                        primaryColor: _primaryColor,
+                        selectedDateRange: _selectedDateRange,
+                        onDateRangeSelected: (dateRange) {
+                          setState(() {
+                            _selectedDateRange = dateRange;
+                          });
+                        },
                       ),
                       const SizedBox(height: 24),
                       LocationInfoCard(
@@ -287,102 +183,70 @@ class _PlantingDateScreenState extends State<PlantingDateScreen> {
                           primaryColor: _primaryColor,
                         ),
                       const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _selectDate,
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(
-                          _selectedDate == null
-                              ? 'ជ្រើសរើសកាលបរិច្ឆេទ'
-                              : 'កាលបរិច្ឆេទ: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          minimumSize: const Size(double.infinity, 50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: (_selectedDate != null &&
-                                !controller.isAnalyzing &&
-                                _formKey.currentState?.validate() == true)
-                            ? () => controller.analyzePlantingConditions(
-                                  cropType: _plantController.text,
-                                  landSize:
-                                      double.parse(_landSizeController.text),
-                                  seedType: _seedTypeController.text,
-                                  landType: _landTypeController.text,
-                                  selectedDate: _selectedDate!,
-                                )
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _secondaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          minimumSize: const Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                          disabledBackgroundColor: Colors.grey.shade300,
-                        ),
-                        child: controller.isAnalyzing
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'វិភាគលក្ខខណ្ឌដាំដុះ',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                      AnalyzeButton(
+                        isEnabled: _selectedDateRange != null &&
+                            !controller.isAnalyzing &&
+                            _formKey.currentState?.validate() == true,
+                        isAnalyzing: controller.isAnalyzing,
+                        onPressed: () async {
+                          await controller.analyzePlantingConditions(
+                            cropType: _plantController.text,
+                            landSize: double.parse(_landSizeController.text),
+                            seedType: _seedTypeController.text,
+                            landType: _landTypeController.text,
+                            selectedDate: _selectedDateRange!.start,
+                            endDate: _selectedDateRange!.end,
+                          );
+
+                          if (controller.analysisResult != null && mounted) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PlantingAnalysisResultScreen(
+                                  analysisResult: controller.analysisResult!,
                                 ),
                               ),
+                            );
+                          }
+                        },
+                        primaryColor: _primaryColor,
+                        secondaryColor: _secondaryColor,
                       ),
-                      if (controller.analysisResult != null) ...[
-                        const SizedBox(height: 24),
-                        SlidingAnalysisCard(
-                          result: controller.analysisResult!,
-                        ),
-                      ],
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  InputDecoration _buildInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: _primaryColor),
-      filled: true,
-      fillColor: Colors.grey[50],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _primaryColor),
+  Widget _buildErrorCard(String errorMessage) {
+    return Card(
+      elevation: 0,
+      color: Colors.red.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.red.shade200),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _primaryColor, width: 2),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+          ],
+        ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _primaryColor.withOpacity(0.5)),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 }

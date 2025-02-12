@@ -17,7 +17,7 @@ class AnalysisTypeSelector extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32) : Colors.transparent,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -25,25 +25,34 @@ class AnalysisTypeSelector extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
+            color: Colors.white,
             border: Border.all(
-              color: const Color(0xFF2E7D32),
-              width: 2,
+              color: const Color(0xFF1B5E20).withOpacity(0.2),
+              width: 1,
             ),
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              if (isSelected)
+                BoxShadow(
+                  color: const Color(0xFF1B5E20).withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+            ],
           ),
           child: Column(
             children: [
               Icon(
                 icon,
-                color: isSelected ? Colors.white : const Color(0xFF2E7D32),
+                color: const Color(0xFF1B5E20),
                 size: 32,
               ),
               const SizedBox(height: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF2E7D32),
-                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1B5E20),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ],
@@ -57,8 +66,13 @@ class AnalysisTypeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: const Color(0xFF1B5E20).withOpacity(0.2),
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -67,15 +81,15 @@ class AnalysisTypeSelector extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.analytics,
-                  color: Color(0xFF2E7D32),
+                Icon(
+                  Icons.analytics_outlined,
+                  color: const Color(0xFF1B5E20),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   "ជ្រើសរើសប្រភេទនៃការវិភាគ",
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFF2E7D32),
+                        color: const Color(0xFF1B5E20),
                         fontWeight: FontWeight.bold,
                       ),
                 ),

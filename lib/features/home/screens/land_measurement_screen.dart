@@ -24,6 +24,7 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
   GoogleMapController? _mapController;
   bool _mapCreated = false;
   late final LandMeasurementController _landController;
+  final _key = UniqueKey();
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(11.5564, 104.9282), // Phnom Penh coordinates
@@ -353,6 +354,7 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
                       ),
                     ),
                   GoogleMap(
+                    key: _key,
                     initialCameraPosition: _initialPosition,
                     onMapCreated: _onMapCreated,
                     markers: controller.markers,
@@ -370,15 +372,18 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
                         : MapType.normal,
                   ),
                   if (!controller.isDrawing && controller.points.isEmpty)
-                    Column(
-                      children: [
-                        const StartMeasurementCard(),
-                        if (widget.initialMethod == null)
-                          MeasurementMethodSelector(
-                            currentMethod: controller.currentMethod,
-                            onMethodChanged: controller.setMeasurementMethod,
-                          ),
-                      ],
+                    Positioned.fill(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const StartMeasurementCard(),
+                          if (widget.initialMethod == null)
+                            MeasurementMethodSelector(
+                              currentMethod: controller.currentMethod,
+                              onMethodChanged: controller.setMeasurementMethod,
+                            ),
+                        ],
+                      ),
                     ),
                   if (controller.points.isNotEmpty)
                     AnimatedPositioned(
