@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../controllers/planting_date_controller.dart';
 import '../widgets/planting_date/weather_info_card.dart';
 import '../widgets/planting_date/location_info_card.dart';
-import '../widgets/planting_date/analysis_result_card.dart';
 import '../widgets/planting_date/crop_info_form.dart';
 import '../widgets/planting_date/planting_instructions_dialog.dart';
 import '../widgets/planting_date/analyze_button.dart';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math' as math;
@@ -17,6 +18,11 @@ class LandMeasurementController extends ChangeNotifier {
   double _radius = 0.0;
   Timer? _locationTimer;
   Position? _lastPosition;
+  LatLng? _startPoint;
+  double? _distanceToStart;
+  DateTime? _startTime;
+  double _totalDistance = 0.0;
+  bool _isNearStart = false;
 
   // Getters
   List<LatLng> get points => _points;
@@ -27,9 +33,27 @@ class LandMeasurementController extends ChangeNotifier {
   MeasurementMethod get currentMethod => _currentMethod;
   LatLng? get centerPoint => _centerPoint;
   double get radius => _radius;
+  double? get distanceToStart => _distanceToStart;
+  Duration get elapsedTime => _startTime != null
+      ? DateTime.now().difference(_startTime!)
+      : Duration.zero;
+  double get totalDistance => _totalDistance;
+  bool get isNearStart => _isNearStart;
 
   Set<Marker> get markers {
     final Set<Marker> allMarkers = {};
+
+    // Add start point marker for walk around method
+    if (_currentMethod == MeasurementMethod.walkAround && _startPoint != null) {
+      allMarkers.add(
+        Marker(
+          markerId: const MarkerId('start_point'),
+          position: _startPoint!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          infoWindow: const InfoWindow(title: 'ចំណុចចាប់ផ្តើម'),
+        ),
+      );
+    }
 
     // Add points markers
     allMarkers.addAll(_points.asMap().entries.map((entry) {
@@ -119,6 +143,8 @@ class LandMeasurementController extends ChangeNotifier {
       _updateMeasurements();
       _stopLocationTracking();
     } else if (_currentMethod == MeasurementMethod.walkAround) {
+      _startTime = DateTime.now();
+      _totalDistance = 0.0;
       _startLocationTracking();
     }
     notifyListeners();
@@ -156,10 +182,52 @@ class LandMeasurementController extends ChangeNotifier {
 
   void _startLocationTracking() {
     _locationTimer?.cancel();
-    _locationTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _locationTimer =
+        Timer.periodic(const Duration(milliseconds: 500), (timer) async {
       try {
-        final position = await Geolocator.getCurrentPosition();
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.bestForNavigation,
+          timeLimit: const Duration(seconds: 2),
+        );
         final point = LatLng(position.latitude, position.longitude);
+
+        // Set start point if this is the first point
+        if (_points.isEmpty) {
+          _startPoint = point;
+          _points.add(point);
+          notifyListeners();
+          return;
+        }
+
+        // Calculate distance to start point if we have one
+        if (_startPoint != null) {
+          _distanceToStart = Geolocator.distanceBetween(
+            point.latitude,
+            point.longitude,
+            _startPoint!.latitude,
+            _startPoint!.longitude,
+          );
+
+          // Update near start status
+          final wasNearStart = _isNearStart;
+          _isNearStart = _distanceToStart! < 10;
+
+          // Notify if just entered near-start zone
+          if (!wasNearStart && _isNearStart && _points.length >= 8) {
+            HapticFeedback.heavyImpact();
+          }
+
+          // Auto-complete the polygon if we're close to the start point and have enough points
+          if (_distanceToStart! < 5 && _points.length >= 8) {
+            _points.add(_startPoint!);
+            _isDrawing = false;
+            _updateMeasurements();
+            _stopLocationTracking();
+            HapticFeedback.heavyImpact();
+            notifyListeners();
+            return;
+          }
+        }
 
         if (_lastPosition != null) {
           final distance = Geolocator.distanceBetween(
@@ -169,10 +237,11 @@ class LandMeasurementController extends ChangeNotifier {
             position.longitude,
           );
 
-          // Only add point if moved more than 5 meters
-          if (distance > 5) {
+          // Only add point if moved more than 2 meters
+          if (distance > 2) {
             _points.add(point);
             _lastPosition = position;
+            _totalDistance += distance;
             _updateMeasurements();
             notifyListeners();
           }
@@ -191,6 +260,10 @@ class LandMeasurementController extends ChangeNotifier {
     _locationTimer?.cancel();
     _locationTimer = null;
     _lastPosition = null;
+    _startPoint = null;
+    _distanceToStart = null;
+    _startTime = null;
+    _isNearStart = false;
   }
 
   void undoLastPoint() {

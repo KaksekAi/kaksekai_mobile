@@ -4,8 +4,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../controllers/land_measurement_controller.dart';
 import '../models/land_measurement.dart';
-import '../widgets/land_measurement/start_measurement_card.dart';
-import '../widgets/land_measurement/measurement_method_selector.dart';
+import '../widgets/land_measurement/walking_measurement_overlay.dart';
+import '../widgets/land_measurement/area_results_card.dart';
+import '../widgets/land_measurement/land_measurement_app_bar.dart';
 
 class LandMeasurementScreen extends StatefulWidget {
   final MeasurementMethod? initialMethod;
@@ -24,7 +25,8 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
   GoogleMapController? _mapController;
   bool _mapCreated = false;
   late final LandMeasurementController _landController;
-  final _key = UniqueKey();
+  bool _disposed = false;
+  bool _isMapDisposed = false;
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(11.5564, 104.9282), // Phnom Penh coordinates
@@ -49,28 +51,35 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
 
   @override
   void dispose() {
+    _disposed = true;
     _disposeMap();
     WidgetsBinding.instance.removeObserver(this);
     _landController.dispose();
     super.dispose();
   }
 
-  void _disposeMap() {
-    if (_mapController != null) {
-      _mapController!.dispose();
+  Future<void> _disposeMap() async {
+    if (!_isMapDisposed && _mapController != null) {
+      _isMapDisposed = true;
+      final controller = _mapController;
       _mapController = null;
+      _mapCreated = false;
+
+      if (controller != null) {
+        controller.dispose();
+      }
     }
-    _mapCreated = false;
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!mounted) return;
+    if (_disposed) return;
 
     switch (state) {
       case AppLifecycleState.resumed:
-        if (_mapController == null) {
+        if (_isMapDisposed) {
           setState(() {
+            _isMapDisposed = false;
             _mapCreated = false;
           });
         }
@@ -85,565 +94,266 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
     }
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    if (!mounted) {
+  void _onMapCreated(GoogleMapController controller) async {
+    if (_disposed || _mapCreated || !mounted) {
       controller.dispose();
       return;
     }
 
-    if (_mapCreated) {
-      controller.dispose();
-      return;
-    }
+    _mapController = controller;
+    _isMapDisposed = false;
 
     setState(() {
-      _mapController = controller;
       _mapCreated = true;
     });
 
-    _landController.requestLocationPermission().then((_) {
-      if (!mounted || _mapController == null) return;
+    try {
+      await _landController.requestLocationPermission();
+      if (_disposed || _mapController == null || !mounted) return;
 
-      _landController.getCurrentLocation().then((position) {
-        if (!mounted || _mapController == null) return;
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(position),
+      final position = await _landController.getCurrentLocation();
+      if (_disposed || _mapController == null || !mounted) return;
+
+      await _mapController?.animateCamera(
+        CameraUpdate.newLatLng(position),
+      );
+    } catch (error) {
+      debugPrint('Error initializing map: $error');
+      if (!_disposed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('មិនអាចរកទីតាំងបច្ចុប្បន្នបានទេ'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1B5E20),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            margin: EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16 + MediaQuery.of(context).padding.bottom,
+            ),
+          ),
         );
-      });
-    });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      onPopInvoked: (didPop) {
+      onPopInvoked: (didPop) async {
         if (didPop) {
-          _disposeMap();
+          await _disposeMap();
         }
       },
       child: ChangeNotifierProvider.value(
         value: _landController,
         child: Consumer<LandMeasurementController>(
           builder: (context, controller, _) {
+            final bottomPadding = MediaQuery.of(context).padding.bottom;
+
             return Scaffold(
               extendBodyBehindAppBar: true,
-              appBar: AppBar(
-                title: const Text(
-                  'វាស់វែងដី',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 24,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                backgroundColor: const Color(0xFF1B5E20).withOpacity(0.95),
-                elevation: 0,
-                systemOverlayStyle: const SystemUiOverlayStyle(
-                  statusBarColor: Colors.transparent,
-                  statusBarIconBrightness: Brightness.light,
-                ),
-                leading: Container(
-                  margin: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      _disposeMap();
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        controller.isSatelliteView
-                            ? Icons.map
-                            : Icons.satellite_alt,
-                        color: Colors.white,
-                      ),
-                      onPressed: controller.toggleMapType,
-                      tooltip: controller.isSatelliteView
-                          ? 'បង្ហាញផែនទីធម្មតា'
-                          : 'បង្ហាញរូបភាពផ្កាយរណប',
-                    ),
-                  ),
-                  if (controller.points.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white),
-                        onPressed: () {
-                          controller.reset();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('បានជម្រះទិន្នន័យ'),
-                              duration: Duration(seconds: 2),
-                              backgroundColor: Color(0xFF1B5E20),
-                            ),
-                          );
-                        },
-                        tooltip: 'ចាប់ផ្តើមម្តងទៀត',
-                      ),
-                    ),
-                ],
-              ),
-              floatingActionButton: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (!controller.isLoading && controller.points.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: FloatingActionButton.small(
-                        heroTag: 'undo',
-                        backgroundColor: Colors.orange.shade800,
-                        onPressed: () {
-                          controller.undoLastPoint();
-                          if (controller.points.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('បានលុបចំណុចទាំងអស់'),
-                                duration: Duration(seconds: 2),
-                                backgroundColor: Color(0xFF1B5E20),
-                              ),
-                            );
-                          }
-                        },
-                        tooltip: 'ត្រឡប់ក្រោយ',
-                        elevation: 4,
-                        child: const Icon(Icons.undo, color: Colors.white),
-                      ),
-                    ),
-                  if (!controller.isLoading)
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: FloatingActionButton.extended(
-                        heroTag: 'draw',
-                        backgroundColor: const Color(0xFF1B5E20),
-                        onPressed: () {
-                          controller.toggleDrawing();
-                          if (controller.isDrawing) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('ចុចលើផែនទីដើម្បីកំណត់ចំណុច'),
-                                duration: Duration(seconds: 2),
-                                backgroundColor: Color(0xFF1B5E20),
-                              ),
-                            );
-                          }
-                        },
-                        elevation: 4,
-                        highlightElevation: 8,
-                        icon: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            controller.isDrawing
-                                ? Icons.check
-                                : Icons.touch_app,
-                            key: ValueKey(controller.isDrawing),
-                            color: Colors.white,
-                          ),
-                        ),
-                        label: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 200),
-                          child: Text(
-                            controller.isDrawing ? 'បញ្ចប់' : 'ចាប់ផ្តើម',
-                            key: ValueKey(controller.isDrawing),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+              appBar: LandMeasurementAppBar(
+                controller: controller,
+                onBackPressed: () async {
+                  await _disposeMap();
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                },
               ),
               body: Stack(
                 fit: StackFit.expand,
                 children: [
+                  if (!_isMapDisposed)
+                    GoogleMap(
+                      initialCameraPosition: _initialPosition,
+                      onMapCreated: _onMapCreated,
+                      markers: controller.markers,
+                      polylines: controller.polylines,
+                      polygons: controller.polygons,
+                      circles: controller.circles,
+                      onTap: controller.isDrawing ? controller.addPoint : null,
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: false,
+                      mapToolbarEnabled: false,
+                      compassEnabled: true,
+                      zoomControlsEnabled: false,
+                      mapType: controller.isSatelliteView
+                          ? MapType.satellite
+                          : MapType.normal,
+                    ),
                   if (!_mapCreated)
                     Container(
                       color: Colors.white,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF1B5E20),
-                              strokeWidth: 3,
-                            ),
+                          const CircularProgressIndicator(
+                            color: Color(0xFF1B5E20),
+                            strokeWidth: 3,
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                           Text(
                             'កំពុងផ្ទុកផែនទី...',
                             style: TextStyle(
                               color: Colors.grey[700],
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'សូមរង់ចាំមួយភ្លែត',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                              fontSize: 16,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  GoogleMap(
-                    key: _key,
-                    initialCameraPosition: _initialPosition,
-                    onMapCreated: _onMapCreated,
-                    markers: controller.markers,
-                    polylines: controller.polylines,
-                    polygons: controller.polygons,
-                    circles: controller.circles,
-                    onTap: controller.isDrawing ? controller.addPoint : null,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
-                    mapToolbarEnabled: false,
-                    compassEnabled: true,
-                    zoomControlsEnabled: false,
-                    mapType: controller.isSatelliteView
-                        ? MapType.satellite
-                        : MapType.normal,
-                  ),
-                  if (!controller.isDrawing && controller.points.isEmpty)
-                    Positioned.fill(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const StartMeasurementCard(),
-                          if (widget.initialMethod == null)
-                            MeasurementMethodSelector(
-                              currentMethod: controller.currentMethod,
-                              onMethodChanged: controller.setMeasurementMethod,
-                            ),
-                        ],
-                      ),
-                    ),
+                  if (controller.isDrawing &&
+                      controller.currentMethod == MeasurementMethod.walkAround)
+                    WalkingMeasurementOverlay(controller: controller),
                   if (controller.points.isNotEmpty)
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      bottom: 100,
+                    Positioned(
+                      bottom: 100 + bottomPadding,
                       left: 16,
                       right: 16,
-                      child: Card(
-                        elevation: 8,
-                        shadowColor: Colors.black26,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.white,
-                                Colors.green.shade50,
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.green.shade100.withOpacity(0.5),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
+                      child: AreaResultsCard(controller: controller),
+                    ),
+                  Positioned(
+                    right: 16,
+                    bottom:
+                        (controller.points.isEmpty ? 100 : 240) + bottomPadding,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF1B5E20)
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: const Color(0xFF1B5E20)
-                                              .withOpacity(0.2),
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.area_chart,
-                                        color: Color(0xFF1B5E20),
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'ផ្ទៃក្រឡា',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF1B5E20),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${controller.area?.toStringAsFixed(2) ?? '0'} ម៉ែត្រការ៉េ',
-                                            style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF1B5E20),
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (controller.areaInHectares != null) ...[
-                                  const SizedBox(height: 16),
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.green.shade100,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.green.shade50,
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Icon(
-                                                Icons.straighten,
-                                                size: 16,
-                                                color: Colors.grey[700],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '${controller.areaInHectares!.toStringAsFixed(4)} ហិកតា',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.grey[800],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Icon(
-                                                Icons.crop_square,
-                                                size: 16,
-                                                color: Colors.grey[700],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '${controller.measurement?.areaInAcres?.toStringAsFixed(4) ?? '0'} Acres',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                const Divider(height: 24),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.shade100,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Colors.green.shade200,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.green.shade50,
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.location_on,
-                                            size: 16,
-                                            color: Color(0xFF1B5E20),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            'ចំនួនចំណុច: ${controller.points.length}',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: Color(0xFF1B5E20),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (controller.measurement
-                                            ?.estimatedErrorPercentage !=
-                                        null)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.orange.shade100,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Colors.orange.shade200,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.orange.shade50,
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.info_outline,
-                                              size: 16,
-                                              color: Colors.orange.shade900,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '±${controller.measurement?.estimatedErrorPercentage?.toStringAsFixed(1)}%',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.orange.shade900,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.my_location,
+                            color: Color(0xFF1B5E20)),
+                        onPressed: () {
+                          _landController.getCurrentLocation().then((position) {
+                            _mapController?.animateCamera(
+                              CameraUpdate.newLatLngZoom(position, 18),
+                            );
+                          });
+                        },
+                        tooltip: 'ទៅកាន់ទីតាំងបច្ចុប្បន្ន',
                       ),
                     ),
+                  ),
                 ],
               ),
+              floatingActionButton: !controller.isLoading
+                  ? Container(
+                      margin: EdgeInsets.only(bottom: bottomPadding),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (controller.points.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: FloatingActionButton.small(
+                                heroTag: 'undo',
+                                backgroundColor: Colors.orange.shade800,
+                                onPressed: () {
+                                  controller.undoLastPoint();
+                                  if (controller.points.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.undo,
+                                                color: Colors.white),
+                                            const SizedBox(width: 12),
+                                            const Text('បានលុបចំណុចទាំងអស់'),
+                                          ],
+                                        ),
+                                        backgroundColor:
+                                            const Color(0xFF1B5E20),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        margin: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 16 + bottomPadding,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child:
+                                    const Icon(Icons.undo, color: Colors.white),
+                              ),
+                            ),
+                          FloatingActionButton.extended(
+                            heroTag: 'draw',
+                            backgroundColor: const Color(0xFF1B5E20),
+                            onPressed: () {
+                              controller.toggleDrawing();
+                              if (controller.isDrawing) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Row(
+                                      children: [
+                                        const Icon(Icons.touch_app,
+                                            color: Colors.white),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                            'ចុចលើផែនទីដើម្បីកំណត់ចំណុច'),
+                                      ],
+                                    ),
+                                    backgroundColor: const Color(0xFF1B5E20),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    margin: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 16 + bottomPadding,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Icon(
+                                controller.isDrawing
+                                    ? Icons.stop
+                                    : Icons.play_arrow,
+                                key: ValueKey(controller.isDrawing),
+                                color: Colors.white,
+                              ),
+                            ),
+                            label: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Text(
+                                controller.isDrawing ? 'បញ្ចប់' : 'ចាប់ផ្តើម',
+                                key: ValueKey(controller.isDrawing),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : null,
             );
           },
         ),

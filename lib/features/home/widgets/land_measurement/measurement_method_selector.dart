@@ -13,290 +13,172 @@ class MeasurementMethodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Card(
-        elevation: 4,
-        shadowColor: Colors.black26,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      children: [
+        _buildMethodCard(
+          context,
+          method: MeasurementMethod.walkAround,
+          icon: Icons.directions_walk,
+          title: 'ដើរវាស់វែង',
+          subtitle: 'ដើរជុំវិញព្រំដីដើម្បីវាស់វែង',
+          description: 'ដើរជុំវិញព្រំដីដោយប្រើប្រាស់ GPS ដើម្បីកំណត់ព្រំដី',
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.straighten,
-                      color: Color(0xFF1B5E20),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'ជ្រើសរើសវិធីសាស្ត្រវាស់វែង',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1B5E20),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 12,
-                    children: [
-                      _buildMethodOption(
-                        context,
-                        MeasurementMethod.pointByPoint,
-                        'ចុចចំណុច',
-                        Icons.touch_app,
-                        'ចុចចំណុចម្តងមួយៗដើម្បីកំណត់ព្រំដី',
-                        'ល្អសម្រាប់ដីមានរាងមិនទៀងទាត់',
-                      ),
-                      _buildMethodOption(
-                        context,
-                        MeasurementMethod.walkAround,
-                        'ដើរជុំវិញ',
-                        Icons.directions_walk,
-                        'ដើរជុំវិញដីដោយកាន់ទូរស័ព្ទ',
-                        'ល្អសម្រាប់ដីធំៗ',
-                      ),
-                      _buildMethodOption(
-                        context,
-                        MeasurementMethod.centerRadius,
-                        'រង្វង់មូល',
-                        Icons.radio_button_unchecked,
-                        'វាស់ដីរាងមូលដោយប្រើចំណុចកណ្តាល',
-                        'ល្អសម្រាប់ដីរាងមូល',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildMethodInstructions(currentMethod),
-                ],
-              ),
-            ),
-          ],
+        const SizedBox(height: 12),
+        _buildMethodCard(
+          context,
+          method: MeasurementMethod.pointByPoint,
+          icon: Icons.touch_app,
+          title: 'ចុចវាស់វែង',
+          subtitle: 'ចុចលើផែនទីដើម្បីកំណត់ព្រំដី',
+          description: 'ចុចលើផែនទីដើម្បីកំណត់ចំណុចនីមួយៗនៃព្រំដី',
         ),
-      ),
+        const SizedBox(height: 12),
+        _buildMethodCard(
+          context,
+          method: MeasurementMethod.centerRadius,
+          icon: Icons.radio_button_checked,
+          title: 'រង្វង់វាស់វែង',
+          subtitle: 'កំណត់ចំណុចកណ្តាលនិងកាំ',
+          description: 'ប្រើប្រាស់សម្រាប់ដីរាងរង្វង់ឬរាងស្រដៀងរង្វង់',
+        ),
+      ],
     );
   }
 
-  Widget _buildMethodOption(
-    BuildContext context,
-    MeasurementMethod method,
-    String title,
-    IconData icon,
-    String description,
-    String recommendation,
-  ) {
+  Widget _buildMethodCard(
+    BuildContext context, {
+    required MeasurementMethod method,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String description,
+  }) {
     final isSelected = currentMethod == method;
 
-    return GestureDetector(
-      onTap: () => onMethodChanged(method),
-      child: Container(
-        width: 160,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF1B5E20) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onMethodChanged(method),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF1B5E20).withOpacity(0.1)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color:
+                  isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade200,
+              width: isSelected ? 2 : 1,
+            ),
           ),
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: const Color(0xFF1B5E20).withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.2)
-                    : const Color(0xFF1B5E20).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: isSelected ? Colors.white : const Color(0xFF1B5E20),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey[800],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 12,
-                color: isSelected ? Colors.white70 : Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.2)
-                    : const Color(0xFF1B5E20).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                recommendation,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isSelected ? Colors.white : const Color(0xFF1B5E20),
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMethodInstructions(MeasurementMethod method) {
-    String title;
-    List<String> steps;
-
-    switch (method) {
-      case MeasurementMethod.pointByPoint:
-        title = 'របៀបវាស់តាមចំណុច';
-        steps = [
-          'ចុចប៊ូតុង "ចាប់ផ្តើម" ដើម្បីចាប់ផ្តើមវាស់',
-          'ចុចលើផែនទីដើម្បីកំណត់ចំណុចនីមួយៗនៃព្រំដី',
-          'ចុចប៊ូតុង "ត្រឡប់ក្រោយ" ដើម្បីលុបចំណុចចុងក្រោយ',
-          'ចុចប៊ូតុង "បញ្ចប់" នៅពេលកំណត់ចំណុចគ្រប់គ្រាន់',
-        ];
-        break;
-      case MeasurementMethod.walkAround:
-        title = 'របៀបវាស់តាមការដើរ';
-        steps = [
-          'ឈរនៅចំណុចចាប់ផ្តើមនៃព្រំដី',
-          'ចុចប៊ូតុង "ចាប់ផ្តើម" ដើម្បីចាប់ផ្តើមវាស់',
-          'ដើរតាមព្រំដីដោយកាន់ទូរស័ព្ទ',
-          'ចុចប៊ូតុង "បញ្ចប់" នៅពេលដើរមកដល់ចំណុចចាប់ផ្តើមវិញ',
-        ];
-        break;
-      case MeasurementMethod.centerRadius:
-        title = 'របៀបវាស់តាមរង្វង់';
-        steps = [
-          'ចុចប៊ូតុង "ចាប់ផ្តើម" ដើម្បីចាប់ផ្តើមវាស់',
-          'ចុចលើផែនទីដើម្បីកំណត់ចំណុចកណ្តាល',
-          'ចុចម្តងទៀតដើម្បីកំណត់កាំ',
-          'ចុចប៊ូតុង "បញ្ចប់" ដើម្បីបញ្ចប់ការវាស់',
-        ];
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF1B5E20).withOpacity(0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Row(
             children: [
-              const Icon(
-                Icons.help_outline,
-                size: 16,
-                color: Color(0xFF1B5E20),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1B5E20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF1B5E20)
+                      : const Color(0xFF1B5E20).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? Colors.white : const Color(0xFF1B5E20),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? const Color(0xFF1B5E20)
+                                : Colors.black87,
+                          ),
+                        ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1B5E20),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'បានជ្រើសរើស',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isSelected
+                            ? const Color(0xFF1B5E20)
+                            : Colors.grey.shade600,
+                        fontWeight:
+                            isSelected ? FontWeight.w500 : FontWeight.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF1B5E20)
+                        : Colors.grey.shade400,
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? const Center(
+                        child: Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Color(0xFF1B5E20),
+                        ),
+                      )
+                    : null,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ...steps.asMap().entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.only(left: 24, bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 18,
-                    height: 18,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1B5E20),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${entry.key + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      entry.value,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
+        ),
       ),
     );
   }

@@ -18,98 +18,138 @@ class LandMeasurementAppBar extends StatelessWidget
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: const Text(
-        'វាស់វែងដី',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 24,
-          letterSpacing: 0.5,
-        ),
-      ),
-      backgroundColor: const Color(0xFF1B5E20).withOpacity(0.95),
-      elevation: 0,
-      systemOverlayStyle: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-      ),
-      leading: Container(
-        margin: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1B5E20),
+            const Color(0xFF2E7D32),
           ],
         ),
-        child: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBackPressed,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      actions: [
-        Container(
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white30),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+      child: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
-          ),
-          child: IconButton(
-            icon: Icon(
-              controller.isSatelliteView ? Icons.map : Icons.satellite_alt,
-              color: Colors.white,
+              child: const Icon(
+                Icons.straighten,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-            onPressed: controller.toggleMapType,
-            tooltip: controller.isSatelliteView
-                ? 'បង្ហាញផែនទីធម្មតា'
-                : 'បង្ហាញរូបភាពផ្កាយរណប',
-          ),
-        ),
-        if (controller.points.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'វាស់វែងដី',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                Text(
+                  'ប្រព័ន្ធវាស់វែងដីឌីជីថល',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
+          ],
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: onBackPressed,
+            tooltip: 'ត្រឡប់ក្រោយ',
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () {
-                controller.reset();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('បានជម្រះទិន្នន័យ'),
-                    duration: Duration(seconds: 2),
-                    backgroundColor: Color(0xFF1B5E20),
-                  ),
-                );
-              },
-              tooltip: 'ចាប់ផ្តើមម្តងទៀត',
+              icon: Icon(
+                controller.isSatelliteView ? Icons.map : Icons.satellite_alt,
+                color: Colors.white,
+              ),
+              onPressed: controller.toggleMapType,
+              tooltip: controller.isSatelliteView
+                  ? 'បង្ហាញផែនទីធម្មតា'
+                  : 'បង្ហាញរូបភាពផ្កាយរណប',
             ),
           ),
-      ],
+          if (controller.points.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: () {
+                  controller.reset();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 12),
+                          const Text('បានជម្រះទិន្នន័យ'),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF1B5E20),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      margin: EdgeInsets.only(
+                        bottom: 70 + bottomPadding,
+                        left: 20,
+                        right: 20,
+                      ),
+                    ),
+                  );
+                },
+                tooltip: 'ចាប់ផ្តើមម្តងទៀត',
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
