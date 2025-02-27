@@ -27,6 +27,7 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
   late final LandMeasurementController _landController;
   bool _disposed = false;
   bool _isMapDisposed = false;
+  int _mapKey = 0;
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(11.5564, 104.9282), // Phnom Penh coordinates
@@ -81,6 +82,7 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
           setState(() {
             _isMapDisposed = false;
             _mapCreated = false;
+            _mapKey++;
           });
         }
         break;
@@ -174,6 +176,7 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
                 children: [
                   if (!_isMapDisposed)
                     GoogleMap(
+                      key: ValueKey(_mapKey),
                       initialCameraPosition: _initialPosition,
                       onMapCreated: _onMapCreated,
                       markers: controller.markers,
@@ -211,20 +214,15 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
                         ],
                       ),
                     ),
-                  if (controller.isDrawing &&
-                      controller.currentMethod == MeasurementMethod.walkAround)
-                    WalkingMeasurementOverlay(controller: controller),
-                  if (controller.points.isNotEmpty)
-                    Positioned(
-                      bottom: 100 + bottomPadding,
-                      left: 16,
-                      right: 16,
-                      child: AreaResultsCard(controller: controller),
-                    ),
+                  if (controller.currentMethod == MeasurementMethod.walkAround)
+                    _buildWalkingUI(controller, bottomPadding),
                   Positioned(
                     right: 16,
-                    bottom:
-                        (controller.points.isEmpty ? 100 : 240) + bottomPadding,
+                    bottom: (controller.points.isEmpty ||
+                                !controller.isResultsVisible
+                            ? 100
+                            : 240) +
+                        bottomPadding,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -251,113 +249,236 @@ class _LandMeasurementScreenState extends State<LandMeasurementScreen>
                       ),
                     ),
                   ),
-                ],
-              ),
-              floatingActionButton: !controller.isLoading
-                  ? Container(
-                      margin: EdgeInsets.only(bottom: bottomPadding),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (controller.points.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: FloatingActionButton.small(
-                                heroTag: 'undo',
-                                backgroundColor: Colors.orange.shade800,
-                                onPressed: () {
-                                  controller.undoLastPoint();
-                                  if (controller.points.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Row(
-                                          children: [
-                                            const Icon(Icons.undo,
-                                                color: Colors.white),
-                                            const SizedBox(width: 12),
-                                            const Text('បានលុបចំណុចទាំងអស់'),
-                                          ],
-                                        ),
-                                        backgroundColor:
-                                            const Color(0xFF1B5E20),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        margin: EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 16 + bottomPadding,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child:
-                                    const Icon(Icons.undo, color: Colors.white),
-                              ),
+                  // Toggle button for results
+                  if (controller.points.isNotEmpty)
+                    Positioned(
+                      right: 16,
+                      bottom: controller.isResultsVisible
+                          ? 240 + bottomPadding
+                          : 16 + bottomPadding,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
-                          FloatingActionButton.extended(
-                            heroTag: 'draw',
-                            backgroundColor: const Color(0xFF1B5E20),
-                            onPressed: () {
-                              controller.toggleDrawing();
-                              if (controller.isDrawing) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(Icons.touch_app,
-                                            color: Colors.white),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                            'ចុចលើផែនទីដើម្បីកំណត់ចំណុច'),
-                                      ],
-                                    ),
-                                    backgroundColor: const Color(0xFF1B5E20),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    margin: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 16 + bottomPadding,
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: controller.toggleResultsVisibility,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    controller.isResultsVisible
+                                        ? Icons.keyboard_arrow_down
+                                        : Icons.keyboard_arrow_up,
+                                    color: const Color(0xFF1B5E20),
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    controller.isResultsVisible
+                                        ? 'លាក់លទ្ធផល'
+                                        : 'បង្ហាញលទ្ធផល',
+                                    style: const TextStyle(
+                                      color: Color(0xFF1B5E20),
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                );
-                              }
-                            },
-                            icon: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: Icon(
-                                controller.isDrawing
-                                    ? Icons.stop
-                                    : Icons.play_arrow,
-                                key: ValueKey(controller.isDrawing),
-                                color: Colors.white,
-                              ),
-                            ),
-                            label: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: Text(
-                                controller.isDrawing ? 'បញ្ចប់' : 'ចាប់ផ្តើម',
-                                key: ValueKey(controller.isDrawing),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    )
-                  : null,
+                    ),
+                  // Results card
+                  if (controller.points.isNotEmpty &&
+                      controller.isResultsVisible)
+                    Positioned(
+                      bottom: 100 + bottomPadding,
+                      left: 16,
+                      right: 16,
+                      child: AreaResultsCard(controller: controller),
+                    ),
+                ],
+              ),
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildWalkingUI(
+      LandMeasurementController controller, double bottomPadding) {
+    if (controller.isDrawing) {
+      return WalkingMeasurementOverlay(controller: controller);
+    }
+
+    return Stack(
+      children: [
+        // Center start button
+        if (controller.points.isEmpty)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B5E20).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.directions_walk,
+                          size: 48,
+                          color: Color(0xFF1B5E20),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'ដើរវាស់វែងដី',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1B5E20),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'ដើរជុំវិញព្រំដីដើម្បីកំណត់ផ្ទៃក្រឡា',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => controller.toggleDrawing(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1B5E20),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.play_arrow),
+                              SizedBox(width: 8),
+                              Text(
+                                'ចាប់ផ្តើម',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Toggle button for results
+        if (controller.points.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: controller.isResultsVisible
+                ? 240 + bottomPadding
+                : 16 + bottomPadding,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: controller.toggleResultsVisibility,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          controller.isResultsVisible
+                              ? Icons.keyboard_arrow_down
+                              : Icons.keyboard_arrow_up,
+                          color: const Color(0xFF1B5E20),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          controller.isResultsVisible
+                              ? 'លាក់លទ្ធផល'
+                              : 'បង្ហាញលទ្ធផល',
+                          style: const TextStyle(
+                            color: Color(0xFF1B5E20),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        // Results card
+        if (controller.points.isNotEmpty && controller.isResultsVisible)
+          Positioned(
+            bottom: 100 + bottomPadding,
+            left: 16,
+            right: 16,
+            child: AreaResultsCard(controller: controller),
+          ),
+      ],
     );
   }
 }

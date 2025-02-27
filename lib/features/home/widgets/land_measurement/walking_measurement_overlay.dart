@@ -29,9 +29,11 @@ class WalkingMeasurementOverlay extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(),
+            _buildCalibrationStatus(),
             _buildStats(),
             if (controller.isNearStart && controller.points.length >= 8)
               _buildNearStartWarning(),
+            _buildSpeedGuidance(),
           ],
         ),
       ),
@@ -80,6 +82,68 @@ class WalkingMeasurementOverlay extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalibrationStatus() {
+    final accuracy = controller.gpsAccuracy;
+    final hasGoodSignal = controller.hasGoodGpsSignal;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            hasGoodSignal ? Icons.gps_fixed : Icons.gps_not_fixed,
+            size: 20,
+            color: hasGoodSignal ? Colors.green : Colors.orange,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      hasGoodSignal ? 'GPS ល្អ' : 'កំពុងរង់ចាំ GPS',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: hasGoodSignal ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (accuracy > 0)
+                      Text(
+                        '(±${accuracy.toStringAsFixed(1)}m)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value:
+                      accuracy > 0 ? (1 - accuracy / 20).clamp(0.0, 1.0) : 0.0,
+                  backgroundColor: Colors.grey[200],
+                  valueColor: AlwaysStoppedAnimation(
+                    hasGoodSignal ? Colors.green : Colors.orange,
                   ),
                 ),
               ],
@@ -259,6 +323,78 @@ class WalkingMeasurementOverlay extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.orange.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpeedGuidance() {
+    // Calculate walking speed in m/s
+    final speed = controller.points.length >= 2
+        ? controller.totalDistance / controller.elapsedTime.inSeconds
+        : 0.0;
+
+    String speedStatus;
+    Color statusColor;
+    String guidance;
+
+    if (speed == 0) {
+      speedStatus = 'រង់ចាំការចាប់ផ្តើម';
+      statusColor = Colors.grey;
+      guidance = 'ចាប់ផ្តើមដើរដោយល្បឿនមធ្យម';
+    } else if (speed < 0.5) {
+      speedStatus = 'ល្បឿនយឺត';
+      statusColor = Colors.orange;
+      guidance = 'សូមដើរលឿនបន្តិច';
+    } else if (speed > 2.0) {
+      speedStatus = 'ល្បឿនលឿន';
+      statusColor = Colors.orange;
+      guidance = 'សូមដើរយឺតបន្តិច';
+    } else {
+      speedStatus = 'ល្បឿនល្អ';
+      statusColor = Colors.green;
+      guidance = 'បន្តដើរល្បឿននេះ';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.speed,
+            color: statusColor,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  speedStatus,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  guidance,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: statusColor.withOpacity(0.8),
                   ),
                 ),
               ],

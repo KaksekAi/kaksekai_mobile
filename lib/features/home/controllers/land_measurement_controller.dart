@@ -23,6 +23,12 @@ class LandMeasurementController extends ChangeNotifier {
   DateTime? _startTime;
   double _totalDistance = 0.0;
   bool _isNearStart = false;
+  double _gpsAccuracy = 0.0;
+  bool _hasGoodGpsSignal = false;
+  int _consecutiveGoodSignals = 0;
+  static const int REQUIRED_GOOD_SIGNALS = 3;
+  static const double MIN_ACCURACY_THRESHOLD = 10.0; // meters
+  bool _isResultsVisible = true;
 
   // Getters
   List<LatLng> get points => _points;
@@ -39,6 +45,9 @@ class LandMeasurementController extends ChangeNotifier {
       : Duration.zero;
   double get totalDistance => _totalDistance;
   bool get isNearStart => _isNearStart;
+  double get gpsAccuracy => _gpsAccuracy;
+  bool get hasGoodGpsSignal => _hasGoodGpsSignal;
+  bool get isResultsVisible => _isResultsVisible;
 
   Set<Marker> get markers {
     final Set<Marker> allMarkers = {};
@@ -189,12 +198,39 @@ class LandMeasurementController extends ChangeNotifier {
           desiredAccuracy: LocationAccuracy.bestForNavigation,
           timeLimit: const Duration(seconds: 2),
         );
+
+        // Update GPS accuracy
+        _gpsAccuracy = position.accuracy;
+        final isCurrentSignalGood = position.accuracy <= MIN_ACCURACY_THRESHOLD;
+
+        if (isCurrentSignalGood) {
+          _consecutiveGoodSignals++;
+          if (_consecutiveGoodSignals >= REQUIRED_GOOD_SIGNALS &&
+              !_hasGoodGpsSignal) {
+            _hasGoodGpsSignal = true;
+            notifyListeners();
+          }
+        } else {
+          _consecutiveGoodSignals = 0;
+          if (_hasGoodGpsSignal) {
+            _hasGoodGpsSignal = false;
+            notifyListeners();
+          }
+        }
+
         final point = LatLng(position.latitude, position.longitude);
+
+        // Only proceed with point recording if we have good GPS signal
+        if (!_hasGoodGpsSignal) {
+          notifyListeners();
+          return;
+        }
 
         // Set start point if this is the first point
         if (_points.isEmpty) {
           _startPoint = point;
           _points.add(point);
+          HapticFeedback.mediumImpact();
           notifyListeners();
           return;
         }
@@ -237,12 +273,25 @@ class LandMeasurementController extends ChangeNotifier {
             position.longitude,
           );
 
-          // Only add point if moved more than 2 meters
-          if (distance > 2) {
+          // Calculate speed in m/s
+          final timeDiff = DateTime.now().difference(_startTime!).inSeconds;
+          final speed = timeDiff > 0 ? distance / timeDiff : 0;
+
+          // Only add point if:
+          // 1. Moved more than 2 meters OR
+          // 2. More than 2 seconds have passed since last point
+          // 3. Speed is reasonable (less than 3 m/s which is about 10 km/h)
+          if ((distance > 2 || timeDiff > 2) && speed < 3.0) {
             _points.add(point);
             _lastPosition = position;
             _totalDistance += distance;
             _updateMeasurements();
+
+            // Provide haptic feedback every 10 meters
+            if (_totalDistance % 10 < 2) {
+              HapticFeedback.selectionClick();
+            }
+
             notifyListeners();
           }
         } else {
@@ -252,6 +301,8 @@ class LandMeasurementController extends ChangeNotifier {
         }
       } catch (e) {
         debugPrint('Error tracking location: $e');
+        _hasGoodGpsSignal = false;
+        notifyListeners();
       }
     });
   }
@@ -264,6 +315,8 @@ class LandMeasurementController extends ChangeNotifier {
     _distanceToStart = null;
     _startTime = null;
     _isNearStart = false;
+    _hasGoodGpsSignal = false;
+    _consecutiveGoodSignals = 0;
   }
 
   void undoLastPoint() {
@@ -352,6 +405,11 @@ class LandMeasurementController extends ChangeNotifier {
             math.sin(dLon / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return radius * c;
+  }
+
+  void toggleResultsVisibility() {
+    _isResultsVisible = !_isResultsVisible;
+    notifyListeners();
   }
 
   @override
